@@ -1,0 +1,41 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "pwa-node",
+            "request": "launch",
+            "name": "Launch Bookings",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/app.mjs",
+            "args": [
+                "bookings",
+                "2022",
+                "jan"
+            ],
+            "env": {
+                "SQUARE_ACCESS_TOKEN": "***REMOVED***"
+            }
+        },
+        {
+            "type": "pwa-node",
+            "request": "launch",
+            "name": "Launch Customer",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/app.mjs",
+            "args": [
+                "customer",
+                "***REMOVED***",
+            ],
+            "env": {
+                "SQUARE_ACCESS_TOKEN": "***REMOVED***"
+            }
+        }
+    ]
+}
