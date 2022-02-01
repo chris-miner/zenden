@@ -19,7 +19,51 @@ program
     .description('retrieve the customer for the given id')
     .action(retrieveCustomer);
 
+program
+    .command('nt')
+    .description('retrieve nail trim customers')
+    .action(listNailTrim);
+
 program.parse(process.argv);
+
+function listNailTrim() {
+    const getNailTrim = async () => {
+        const client = new Client({
+            timeout: 3000,
+            environment: Environment.Production,
+            accessToken: process.env.SQUARE_ACCESS_TOKEN,
+        });
+        const { customersApi } = client;
+
+        var cursor = ""
+        var customers = []
+        while (cursor !== null) {
+            try {
+                let { result } = await customersApi.listCustomers(cursor, 100, 'CREATED_AT', 'ASC');
+
+                customers = customers.concat(result.customers);
+                cursor = result.cursor ? result.cursor : null;
+
+            } catch (error) {
+                if (error instanceof ApiError) {
+                    console.log(`Errors: ${error}`)
+                } else {
+                    console.log(`Unexpected Error: ${error}`)
+                }
+            }
+        }
+
+        for (const customer of customers) {
+            const orders = retrieveOrders(customer.id)
+            console.log(`"${orders.length}", "${customer.givenName} ${customer.familyName}", "${customer.emailAddress}", "${customer.phoneNumber}"`)
+        }
+    }
+    getNailTrim()
+}
+
+function retrieveOrders(id) {
+    return []
+}
 
 function listBookings(year, month) {
     const getBookings = async () => {
@@ -28,29 +72,26 @@ function listBookings(year, month) {
             environment: Environment.Production,
             accessToken: process.env.SQUARE_ACCESS_TOKEN,
         });
-        const { bookingsApi } = client;
+        const { bookingsApi } = client
 
-        const monthIndex = new Date(month + " 1").getMonth();
-        const startTime = new Date(year, monthIndex, 1);
-        const endTime = new Date(year, monthIndex + 1, 0);
+        const monthIndex = new Date(month + " 1").getMonth()
+        const startTime = new Date(year, monthIndex, 1)
+        const endTime = new Date(year, monthIndex + 1, 0)
 
-        var cursor = "";
-        var bookings = [];
+        var cursor = ""
+        var bookings = []
         // Count the total number of customers using the listCustomers method
         while (cursor !== null) {
 
             try {
-                // Call listCustomers method to get all customers in this Square account
                 let { result } = await bookingsApi.listBookings(100, cursor, "", "6JP61784A3D6V", startTime.toISOString(), endTime.toISOString());
                 bookings = bookings.concat(result.bookings);
-                // Get the cursor if it exists in the result else set it to null
                 cursor = result.cursor ? result.cursor : null;
-
             } catch (error) {
                 if (error instanceof ApiError) {
-                    console.log(`Errors: ${error}`);
+                    console.log(`Errors: ${error}`)
                 } else {
-                    console.log(`Unexpected Error: ${error}`);
+                    console.log(`Unexpected Error: ${error}`)
                 }
                 // Exit loop once an error is encountered
                 break;

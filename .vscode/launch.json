@@ -11,7 +11,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/app.ts",
+            "program": "${workspaceFolder}/app.mjs",
             "args": [
                 "bookings",
                 "2022",
@@ -28,10 +28,25 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/app.ts",
+            "program": "${workspaceFolder}/app.mjs",
             "args": [
                 "customer",
                 "***REMOVED***",
+            ],
+            "env": {
+                "SQUARE_ACCESS_TOKEN": "***REMOVED***"
+            }
+        },
+        {
+            "type": "pwa-node",
+            "request": "launch",
+            "name": "Launch NT",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/app.mjs",
+            "args": [
+                "nt",
             ],
             "env": {
                 "SQUARE_ACCESS_TOKEN": "***REMOVED***"
