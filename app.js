@@ -1,7 +1,9 @@
-import { ApiError, Client, Environment } from 'square'
-import { Command } from 'commander/esm.mjs';
+"use strict";
+const { ApiError, Client, Environment } = require('square')
+const { Command } = require('commander');
 
 const program = new Command()
+
 program.version('0.0.1')
 
 program
@@ -134,14 +136,19 @@ function listBookings(year, month) {
                 } else {
                     console.log(`Unexpected Error: ${error}`)
                 }
-                // Exit loop once an error is encountered
-                break;
+                // 
+                break
             }
         }
 
         for (const booking of bookings) {
-            const customer = await retrieveCustomer(booking.customerId)
-            console.log(`"${booking.startAt}", "${customer.givenName} ${customer.familyName}", "${customer.emailAddress}", "${customer.phoneNumber}"`)
+            try {
+                const customer = await retrieveCustomer(booking.customerId)
+                console.log(`"${booking.startAt}", "${customer.givenName} ${customer.familyName}", "${customer.emailAddress}", "${customer.phoneNumber}"`)
+            }
+            catch (error) {
+                console.log(error)
+            }
         }
     }
     getBookings()
