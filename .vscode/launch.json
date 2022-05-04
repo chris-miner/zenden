@@ -51,6 +51,23 @@
             "env": {
                 "SQUARE_ACCESS_TOKEN": "***REMOVED***"
             }
+        },
+        {
+            "type": "pwa-node",
+            "request": "launch",
+            "name": "Launch Staff",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/app.mjs",
+            "args": [
+                "staff",
+                "Chris",
+                "Miner"
+            ],
+            "env": {
+                "SQUARE_ACCESS_TOKEN": "***REMOVED***"
+            }
         }
     ]
 }

@@ -1,30 +1,71 @@
 import { ApiError, Client, Environment } from 'square'
 import { Command } from 'commander/esm.mjs';
 
-const program = new Command();
+const program = new Command()
 program.version('0.0.1')
 
 program
     .command('bookings <year> <month>')
     .description('list bookings for the given month')
-    .action(listBookings);
+    .action(listBookings)
+
+program
+    .command('move <appointment_id> <to_staff_id>')
+    .description('move the booking to new staff member')
+    .action((appointmentId, staffId) => {
+        moveBooking(appointmentId, staffId).then((booking) => {
+            console.log(booking)
+        })
+    })
 
 program
     .command('locations')
     .description('list locations for business')
-    .action(listLocations);
+    .action(listLocations)
 
 program
     .command('customer <customer_id>')
     .description('retrieve the customer for the given id')
-    .action(retrieveCustomer);
+    .action((customerId) => {
+        retrieveCustomer(customerId).then((customer) => {
+            console.log(customer)
+        })
+    })
 
 program
     .command('nt')
     .description('retrieve nail trim customers')
-    .action(listNailTrim);
+    .action(listNailTrim)
+
+program
+    .command('staff <firstName> <lastName>')
+    .description('Looks up staff member info')
+    .action((firstName, lastName) => {
+        listTeamMembers(firstName, lastName).then((teamMembers) => {
+            console.log(JSON.stringify(teamMembers))
+        })
+    })
 
 program.parse(process.argv);
+
+function moveBooking(bookingId, staffId) {
+    const squareApi = async () => {
+        const client = new Client({
+            timeout: 3000,
+            environment: Environment.Production,
+            accessToken: process.env.SQUARE_ACCESS_TOKEN,
+        });
+
+        try {
+            const response = await client.bookingsApi.retrieveBooking(bookingId);
+
+            console.log(response.result);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+    return squareApi()
+}
 
 function listNailTrim() {
     const getNailTrim = async () => {
@@ -60,7 +101,7 @@ function listNailTrim() {
     }
     getNailTrim()
 }
-
+// FIXME: implement this to retrieve orders for a customer
 function retrieveOrders(id) {
     return []
 }
@@ -104,6 +145,33 @@ function listBookings(year, month) {
         }
     }
     getBookings()
+}
+
+function listTeamMembers(firstName, lastName) {
+    const getStaff = async () => {
+        const client = new Client({
+            timeout: 3000,
+            environment: Environment.Production,
+            accessToken: process.env.SQUARE_ACCESS_TOKEN,
+        })
+
+        try {
+            const { result } = await client.teamApi.searchTeamMembers({});
+            let members = result.teamMembers.filter((value) => {
+                if (value.givenName === firstName && value.familyName === lastName)
+                    return value
+            })
+
+            return members
+        } catch (error) {
+            if (error instanceof ApiError) {
+                console.log(`Errors: ${error}`)
+            } else {
+                console.log(`Unexpected Error: ${error}`)
+            }
+        }
+    }
+    return getStaff()
 }
 
 function retrieveCustomer(id) {
