@@ -11,11 +11,11 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/app.mjs",
+            "program": "${workspaceFolder}/app.js",
             "args": [
                 "bookings",
                 "2022",
-                "jan"
+                "aug"
             ],
             "env": {
                 "SQUARE_ACCESS_TOKEN": "***REMOVED***"
@@ -28,7 +28,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/app.mjs",
+            "program": "${workspaceFolder}/app.js",
             "args": [
                 "customer",
                 "***REMOVED***",
@@ -44,7 +44,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/app.mjs",
+            "program": "${workspaceFolder}/app.js",
             "args": [
                 "nt",
             ],
@@ -59,7 +59,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/app.mjs",
+            "program": "${workspaceFolder}/app.js",
             "args": [
                 "staff",
                 "Chris",
