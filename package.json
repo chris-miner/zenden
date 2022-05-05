@@ -8,8 +8,11 @@
   },
   "author": "Chris Miner",
   "license": "ISC",
-  "devDependencies": {
+  "dependencies": {
     "commander": "^9.2.0",
     "square": "^18.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.6.4"
   }
 }
