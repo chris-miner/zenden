@@ -1,5 +1,5 @@
-const { ApiError, Client, Environment } = require('square')
-const { Command } = require('commander');
+import { ApiError, Client, Customer, Environment, ListBookingsResponse, ListLocationsResponse, Location, RetrieveCustomerResponse, TeamMember } from 'square';
+import { Command } from 'commander';
 
 const client = new Client({
     // retryConfig: customRetryConfiguration,
@@ -14,7 +14,6 @@ const client = new Client({
             httpMethodsToRetry: ['GET', 'PUT'],
         }
     },
-    retries: 3,
     timeout: 3000,
     environment: Environment.Production,
     accessToken: process.env.SQUARE_ACCESS_TOKEN,
@@ -68,7 +67,7 @@ async function listNailTrim() {
             let { result } = await client.customersApi.listCustomers(cursor, 100, 'CREATED_AT', 'ASC');
 
             customers = customers.concat(result.customers);
-            cursor = result.cursor ? result.cursor : null;
+            cursor = result.cursor ? result.cursor : "";
 
         } catch (error) {
             if (error instanceof ApiError) {
@@ -94,20 +93,24 @@ async function listBookings(year: number, month: string) {
     const startTime = new Date(year, monthIndex, 1)
     const endTime = new Date(year, monthIndex + 1, 0)
 
-    var cursor: string = ""
-    while (cursor !== null) {
+    var cursor: string | null | undefined = ""
+    while (cursor != null) {
         try {
-            const { result } = await client.bookingsApi.listBookings(100, cursor, "", "6JP61784A3D6V", startTime.toISOString(), endTime.toISOString());
-            cursor = result.cursor ? result.cursor : null;
-            const bookings = result.bookings;
-            for (const booking of bookings) {
-                if (booking.status === "ACCEPTED" || booking.status === "PENDING") {
+            const { result }: { result: ListBookingsResponse }
+                = await client.bookingsApi.listBookings(100, cursor, "", "6JP61784A3D6V", startTime.toISOString(), endTime.toISOString());
+            if (result.bookings == null) break;
+            cursor = result.cursor
+
+            for (const booking of result.bookings) {
+                if (booking.appointmentSegments != null
+                    && booking.customerId != null
+                    && (booking.status === "ACCEPTED" || booking.status === "PENDING")) {
                     try {
                         const customer = await retrieveCustomer(booking.customerId)
                         const staff = await retrieveStaff(booking.appointmentSegments[0].teamMemberId)
-                        if (customer != null) {
-                            const startAt = new Date(booking.startAt)
 
+                        if (customer != null && staff != null && booking.startAt != null) {
+                            const startAt = new Date(booking.startAt)
                             console.log(`"${startAt.toLocaleString()}", "${staff.givenName}", "${booking.status}", "${customer.givenName} ${customer.familyName}", "${customer.emailAddress}", "${customer.phoneNumber}"`)
                         }
                         else {
@@ -119,7 +122,6 @@ async function listBookings(year: number, month: string) {
                     }
                 }
             }
-
         } catch (error) {
             if (error instanceof ApiError) {
                 console.error(`API Error: ${error}`)
@@ -132,15 +134,17 @@ async function listBookings(year: number, month: string) {
     }
 }
 
-async function listTeamMembers(firstName: string, lastName: string) {
+async function listTeamMembers(firstName: string, lastName: string): Promise<TeamMember[] | undefined> {
     try {
         const { result } = await client.teamApi.searchTeamMembers({});
-        let members = result.teamMembers.filter((value: any) => {
-            if (value.givenName === firstName && value.familyName === lastName)
-                return value
-        })
+        if (result.teamMembers != null) {
+            let members = result.teamMembers.filter((value: any) => {
+                if (value.givenName === firstName && value.familyName === lastName)
+                    return value
+            })
+            return members
+        }
 
-        return members
     } catch (error) {
         if (error instanceof ApiError) {
             console.error(`API Error: ${error}`)
@@ -150,7 +154,7 @@ async function listTeamMembers(firstName: string, lastName: string) {
     }
 }
 
-async function retrieveStaff(id: string) {
+async function retrieveStaff(id: string): Promise<TeamMember | undefined> {
     try {
         const { result } = await client.teamApi.retrieveTeamMember(id);
         return result.teamMember
@@ -163,15 +167,14 @@ async function retrieveStaff(id: string) {
     }
 }
 
-async function retrieveCustomer(id: string) {
+async function retrieveCustomer(id: string): Promise<Customer | undefined> {
     try {
-        const { result } = await client.customersApi.retrieveCustomer(id);
-
+        const { result }: { result: RetrieveCustomerResponse } = await client.customersApi.retrieveCustomer(id);
         return result.customer;
-    } catch (error: any) {
+    } catch (error) {
         if (error instanceof ApiError) {
-            const firstError = error.errors[0];
-            if (firstError.code !== "NOT_FOUND")
+            const firstError = error?.errors?.[0]
+            if (firstError?.code !== "NOT_FOUND")
                 console.error("There was an error in your request: ", error.errors)
         } else {
             console.error("Unexpected Error: ", error)
@@ -180,16 +183,17 @@ async function retrieveCustomer(id: string) {
 }
 
 
-async function listLocations() {
+async function listLocations(): Promise<void> {
     // The try/catch statement needs to be called from within an asynchronous function
     try {
         // Call listLocations method to get all locations in this Square account
-        let listLocationsResponse = await client.locationsApi.listLocations()
+        const { result }: { result: ListLocationsResponse } = await client.locationsApi.listLocations()
 
         // Get first location from list
-        let firstLocation = listLocationsResponse.result.locations[0]
-
-        console.log("Here is your first location: ", firstLocation)
+        if (result.locations != null) {
+            const firstLocation = result.locations[0]
+            console.log("Here is your first location: ", firstLocation)
+        }
     } catch (error: any) {
         if (error instanceof ApiError) {
             console.error("There was an error in your request: ", error.errors)
