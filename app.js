@@ -2,8 +2,26 @@
 const { ApiError, Client, Environment } = require('square')
 const { Command } = require('commander');
 
-const program = new Command()
+const client = new Client({
+    // retryConfig: customRetryConfiguration,
+    httpClientOptions: {
+        retryConfig: {
+            maxNumberOfRetries: 3,
+            retryOnTimeout: true,
+            retryInterval: 1,
+            maximumRetryWaitTime: 0,
+            backoffFactor: 2,
+            httpStatusCodesToRetry: [408, 413, 429, 500, 502, 503, 504, 521, 522, 524],
+            httpMethodsToRetry: ['GET', 'PUT'],
+        }
+    },
+    retries: 3,
+    timeout: 3000,
+    environment: Environment.Production,
+    accessToken: process.env.SQUARE_ACCESS_TOKEN,
+})
 
+const program = new Command()
 program.version('0.0.1')
 
 program
@@ -11,14 +29,6 @@ program
     .description('list bookings for the given month')
     .action(listBookings)
 
-program
-    .command('move <appointment_id> <to_staff_id>')
-    .description('move the booking to new staff member')
-    .action((appointmentId, staffId) => {
-        moveBooking(appointmentId, staffId).then((booking) => {
-            console.log(booking)
-        })
-    })
 
 program
     .command('locations')
@@ -43,200 +53,149 @@ program
     .command('staff <firstName> <lastName>')
     .description('Looks up staff member info')
     .action((firstName, lastName) => {
-        listTeamMembers(firstName, lastName).then((teamMembers) => {
-            console.log(JSON.stringify(teamMembers))
-        })
+        listTeamMembers(firstName, lastName)
+            .then((teamMembers) => {
+                console.log(JSON.stringify(teamMembers))
+            })
     })
 
 program.parse(process.argv);
 
-function moveBooking(bookingId, staffId) {
-    const squareApi = async () => {
-        const client = new Client({
-            timeout: 3000,
-            environment: Environment.Production,
-            accessToken: process.env.SQUARE_ACCESS_TOKEN,
-        });
-
+async function listNailTrim() {
+    var cursor = ""
+    var customers = []
+    while (cursor !== null) {
         try {
-            const response = await client.bookingsApi.retrieveBooking(bookingId);
+            let { result } = await client.customersApi.listCustomers(cursor, 100, 'CREATED_AT', 'ASC');
 
-            console.log(response.result);
+            customers = customers.concat(result.customers);
+            cursor = result.cursor ? result.cursor : null;
+
         } catch (error) {
-            console.log(error);
-        }
-    }
-    return squareApi()
-}
-
-function listNailTrim() {
-    const getNailTrim = async () => {
-        const client = new Client({
-            timeout: 3000,
-            environment: Environment.Production,
-            accessToken: process.env.SQUARE_ACCESS_TOKEN,
-        });
-        const { customersApi } = client;
-
-        var cursor = ""
-        var customers = []
-        while (cursor !== null) {
-            try {
-                let { result } = await customersApi.listCustomers(cursor, 100, 'CREATED_AT', 'ASC');
-
-                customers = customers.concat(result.customers);
-                cursor = result.cursor ? result.cursor : null;
-
-            } catch (error) {
-                if (error instanceof ApiError) {
-                    console.log(`Errors: ${error}`)
-                } else {
-                    console.log(`Unexpected Error: ${error}`)
-                }
+            if (error instanceof ApiError) {
+                console.log(`API Error: ${error}`)
+            } else {
+                console.log(`Unexpected Error: ${error}`)
             }
         }
-
-        for (const customer of customers) {
-            const orders = retrieveOrders(customer.id)
-            console.log(`"${orders.length}", "${customer.givenName} ${customer.familyName}", "${customer.emailAddress}", "${customer.phoneNumber}"`)
-        }
     }
-    getNailTrim()
+
+    for (const customer of customers) {
+        const orders = retrieveOrders(customer.id)
+        console.log(`"${orders.length}", "${customer.givenName} ${customer.familyName}", "${customer.emailAddress}", "${customer.phoneNumber}"`)
+    }
 }
 // FIXME: implement this to retrieve orders for a customer
 function retrieveOrders(id) {
     return []
 }
 
-function listBookings(year, month) {
-    const getBookings = async () => {
-        const client = new Client({
-            timeout: 3000,
-            environment: Environment.Production,
-            accessToken: process.env.SQUARE_ACCESS_TOKEN,
-        });
-        const { bookingsApi } = client
+async function listBookings(year, month) {
+    const monthIndex = new Date(month + " 1").getMonth()
+    const startTime = new Date(year, monthIndex, 1)
+    const endTime = new Date(year, monthIndex + 1, 0)
 
-        const monthIndex = new Date(month + " 1").getMonth()
-        const startTime = new Date(year, monthIndex, 1)
-        const endTime = new Date(year, monthIndex + 1, 0)
+    var cursor = ""
+    while (cursor !== null) {
+        try {
+            const { result } = await client.bookingsApi.listBookings(100, cursor, "", "6JP61784A3D6V", startTime.toISOString(), endTime.toISOString());
+            cursor = result.cursor ? result.cursor : null;
+            const bookings = result.bookings;
+            for (const booking of bookings) {
+                if (booking.status === "ACCEPTED" || booking.status === "PENDING") {
+                    try {
+                        const customer = await retrieveCustomer(booking.customerId)
+                        const staff = await retrieveStaff(booking.appointmentSegments[0].teamMemberId)
+                        if (customer != null) {
+                            const startAt = new Date(booking.startAt)
 
-        var cursor = ""
-        var bookings = []
-        // Count the total number of customers using the listCustomers method
-        while (cursor !== null) {
-
-            try {
-                let { result } = await bookingsApi.listBookings(100, cursor, "", "6JP61784A3D6V", startTime.toISOString(), endTime.toISOString());
-                bookings = bookings.concat(result.bookings);
-                cursor = result.cursor ? result.cursor : null;
-            } catch (error) {
-                if (error instanceof ApiError) {
-                    console.log(`Errors: ${error}`)
-                } else {
-                    console.log(`Unexpected Error: ${error}`)
+                            console.log(`"${startAt.toLocaleString()}", "${staff.givenName}", "${booking.status}", "${customer.givenName} ${customer.familyName}", "${customer.emailAddress}", "${customer.phoneNumber}"`)
+                        }
+                        else {
+                            console.error(`No customer found for booking ${booking.id} with customerId ${booking.customerId}`)
+                        }
+                    }
+                    catch (error) {
+                        console.error(error)
+                    }
                 }
-                // 
-                break
             }
-        }
 
-        for (const booking of bookings) {
-            try {
-                const customer = await retrieveCustomer(booking.customerId)
-                console.log(`"${booking.startAt}", "${customer.givenName} ${customer.familyName}", "${customer.emailAddress}", "${customer.phoneNumber}"`)
+        } catch (error) {
+            if (error instanceof ApiError) {
+                console.error(`API Error: ${error}`)
+            } else {
+                console.error(`Unexpected Error: ${error}`)
             }
-            catch (error) {
-                console.log(error)
-            }
+            // exit loop on error
+            break;
         }
     }
-    getBookings()
 }
 
-function listTeamMembers(firstName, lastName) {
-    const getStaff = async () => {
-        const client = new Client({
-            timeout: 3000,
-            environment: Environment.Production,
-            accessToken: process.env.SQUARE_ACCESS_TOKEN,
+async function listTeamMembers(firstName, lastName) {
+    try {
+        const { result } = await client.teamApi.searchTeamMembers({});
+        let members = result.teamMembers.filter((value) => {
+            if (value.givenName === firstName && value.familyName === lastName)
+                return value
         })
 
-        try {
-            const { result } = await client.teamApi.searchTeamMembers({});
-            let members = result.teamMembers.filter((value) => {
-                if (value.givenName === firstName && value.familyName === lastName)
-                    return value
-            })
-
-            return members
-        } catch (error) {
-            if (error instanceof ApiError) {
-                console.log(`Errors: ${error}`)
-            } else {
-                console.log(`Unexpected Error: ${error}`)
-            }
+        return members
+    } catch (error) {
+        if (error instanceof ApiError) {
+            console.error(`API Error: ${error}`)
+        } else {
+            console.error(`Unexpected Error: ${error}`)
         }
     }
-    return getStaff()
 }
 
-function retrieveCustomer(id) {
-    const getCustomer = async () => {
-        const client = new Client({
-            timeout: 3000,
-            environment: Environment.Production,
-            accessToken: process.env.SQUARE_ACCESS_TOKEN,
-        })
-
-        const { customersApi } = client
-
-        try {
-            const { result } = await customersApi.retrieveCustomer(id);
-            return result.customer
-        } catch (error) {
-            if (error instanceof ApiError) {
-                console.log(`Errors: ${error}`)
-            } else {
-                console.log(`Unexpected Error: ${error}`)
-            }
+async function retrieveStaff(id) {
+    try {
+        const { result } = await client.teamApi.retrieveTeamMember(id);
+        return result.teamMember
+    } catch (error) {
+        if (error instanceof ApiError) {
+            console.error(`API Error: ${error} for staff ${id}`)
+        } else {
+            console.error(`Unexpected Error: ${error}`)
         }
     }
-    return getCustomer()
 }
 
-function listLocations() {
-    // Create an instance of the API Client 
-    // and initialize it with the credentials 
-    // for the Square account whose assets you want to manage
-    const client = new Client({
-        timeout: 3000,
-        environment: Environment.Production,
-        accessToken: process.env.SQUARE_ACCESS_TOKEN,
-    })
+async function retrieveCustomer(id) {
+    try {
+        const { result } = await client.customersApi.retrieveCustomer(id);
 
-    // Get an instance of the Square API you want call
-    const { locationsApi } = client
-
-    // Create wrapper async function 
-    const getLocations = async () => {
-        // The try/catch statement needs to be called from within an asynchronous function
-        try {
-            // Call listLocations method to get all locations in this Square account
-            let listLocationsResponse = await locationsApi.listLocations()
-
-            // Get first location from list
-            let firstLocation = listLocationsResponse.result.locations[0]
-
-            console.log("Here is your first location: ", firstLocation)
-        } catch (error) {
-            if (error instanceof ApiError) {
-                console.log("There was an error in your request: ", error.errors)
-            } else {
-                console.log("Unexpected Error: ", error)
-            }
+        return result.customer;
+    } catch (error) {
+        if (error instanceof ApiError) {
+            const firstError = error.errors[0];
+            if (firstError.code !== "NOT_FOUND")
+                console.error("There was an error in your request: ", error.errors)
+        } else {
+            console.error("Unexpected Error: ", error)
         }
     }
-    // Invokes the async function
-    getLocations()
+}
+
+
+async function listLocations() {
+    // The try/catch statement needs to be called from within an asynchronous function
+    try {
+        // Call listLocations method to get all locations in this Square account
+        let listLocationsResponse = await client.locationsApi.listLocations()
+
+        // Get first location from list
+        let firstLocation = listLocationsResponse.result.locations[0]
+
+        console.log("Here is your first location: ", firstLocation)
+    } catch (error) {
+        if (error instanceof ApiError) {
+            console.error("There was an error in your request: ", error.errors)
+        } else {
+            console.error("Unexpected Error: ", error)
+        }
+    }
 }
