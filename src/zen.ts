@@ -1,4 +1,3 @@
-"use strict";
 const { ApiError, Client, Environment } = require('square')
 const { Command } = require('commander');
 
@@ -38,7 +37,7 @@ program
 program
     .command('customer <customer_id>')
     .description('retrieve the customer for the given id')
-    .action((customerId) => {
+    .action((customerId: string) => {
         retrieveCustomer(customerId).then((customer) => {
             console.log(customer)
         })
@@ -52,7 +51,7 @@ program
 program
     .command('staff <firstName> <lastName>')
     .description('Looks up staff member info')
-    .action((firstName, lastName) => {
+    .action((firstName: string, lastName: string) => {
         listTeamMembers(firstName, lastName)
             .then((teamMembers) => {
                 console.log(JSON.stringify(teamMembers))
@@ -63,7 +62,7 @@ program.parse(process.argv);
 
 async function listNailTrim() {
     var cursor = ""
-    var customers = []
+    var customers: any[] = []
     while (cursor !== null) {
         try {
             let { result } = await client.customersApi.listCustomers(cursor, 100, 'CREATED_AT', 'ASC');
@@ -86,16 +85,16 @@ async function listNailTrim() {
     }
 }
 // FIXME: implement this to retrieve orders for a customer
-function retrieveOrders(id) {
+function retrieveOrders(id: string) {
     return []
 }
 
-async function listBookings(year, month) {
+async function listBookings(year: number, month: string) {
     const monthIndex = new Date(month + " 1").getMonth()
     const startTime = new Date(year, monthIndex, 1)
     const endTime = new Date(year, monthIndex + 1, 0)
 
-    var cursor = ""
+    var cursor: string = ""
     while (cursor !== null) {
         try {
             const { result } = await client.bookingsApi.listBookings(100, cursor, "", "6JP61784A3D6V", startTime.toISOString(), endTime.toISOString());
@@ -133,10 +132,10 @@ async function listBookings(year, month) {
     }
 }
 
-async function listTeamMembers(firstName, lastName) {
+async function listTeamMembers(firstName: string, lastName: string) {
     try {
         const { result } = await client.teamApi.searchTeamMembers({});
-        let members = result.teamMembers.filter((value) => {
+        let members = result.teamMembers.filter((value: any) => {
             if (value.givenName === firstName && value.familyName === lastName)
                 return value
         })
@@ -151,7 +150,7 @@ async function listTeamMembers(firstName, lastName) {
     }
 }
 
-async function retrieveStaff(id) {
+async function retrieveStaff(id: string) {
     try {
         const { result } = await client.teamApi.retrieveTeamMember(id);
         return result.teamMember
@@ -164,12 +163,12 @@ async function retrieveStaff(id) {
     }
 }
 
-async function retrieveCustomer(id) {
+async function retrieveCustomer(id: string) {
     try {
         const { result } = await client.customersApi.retrieveCustomer(id);
 
         return result.customer;
-    } catch (error) {
+    } catch (error: any) {
         if (error instanceof ApiError) {
             const firstError = error.errors[0];
             if (firstError.code !== "NOT_FOUND")
@@ -191,7 +190,7 @@ async function listLocations() {
         let firstLocation = listLocationsResponse.result.locations[0]
 
         console.log("Here is your first location: ", firstLocation)
-    } catch (error) {
+    } catch (error: any) {
         if (error instanceof ApiError) {
             console.error("There was an error in your request: ", error.errors)
         } else {
