@@ -1,4 +1,4 @@
-import { ApiError, Client, Customer, Environment, ListBookingsResponse, ListLocationsResponse, Location, RetrieveCustomerResponse, TeamMember } from 'square';
+import { ApiError, Client, Customer, Environment, ListBookingsResponse, ListCustomersResponse, ListLocationsResponse, Location, RetrieveCustomerResponse, TeamMember } from 'square';
 import { Command } from 'commander';
 
 const client = new Client({
@@ -60,14 +60,19 @@ program
 program.parse(process.argv);
 
 async function listNailTrim() {
-    var cursor = ""
+    var cursor: string | undefined = ""
     var customers: any[] = []
-    while (cursor !== null) {
+    while (cursor != null) {
         try {
-            let { result } = await client.customersApi.listCustomers(cursor, 100, 'CREATED_AT', 'ASC');
+            let { result }: { result: ListCustomersResponse } = await client.customersApi.listCustomers(cursor, 100, 'CREATED_AT', 'ASC');
+            cursor = result.cursor
 
-            customers = customers.concat(result.customers);
-            cursor = result.cursor ? result.cursor : "";
+            if (result?.customers != null) {
+                for (const customer of result.customers) {
+                    const orders = retrieveOrders(customer.id as string)
+                    console.log(`"${orders.length}", "${customer.givenName} ${customer.familyName}", "${customer.emailAddress}", "${customer.phoneNumber}"`)
+                }
+            }
 
         } catch (error) {
             if (error instanceof ApiError) {
@@ -78,10 +83,6 @@ async function listNailTrim() {
         }
     }
 
-    for (const customer of customers) {
-        const orders = retrieveOrders(customer.id)
-        console.log(`"${orders.length}", "${customer.givenName} ${customer.familyName}", "${customer.emailAddress}", "${customer.phoneNumber}"`)
-    }
 }
 // FIXME: implement this to retrieve orders for a customer
 function retrieveOrders(id: string) {
@@ -93,7 +94,7 @@ async function listBookings(year: number, month: string) {
     const startTime = new Date(year, monthIndex, 1)
     const endTime = new Date(year, monthIndex + 1, 0)
 
-    var cursor: string | null | undefined = ""
+    var cursor: string | undefined = ""
     while (cursor != null) {
         try {
             const { result }: { result: ListBookingsResponse }
@@ -184,7 +185,6 @@ async function retrieveCustomer(id: string): Promise<Customer | undefined> {
 
 
 async function listLocations(): Promise<void> {
-    // The try/catch statement needs to be called from within an asynchronous function
     try {
         // Call listLocations method to get all locations in this Square account
         const { result }: { result: ListLocationsResponse } = await client.locationsApi.listLocations()
