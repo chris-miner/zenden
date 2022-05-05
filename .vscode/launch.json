@@ -5,13 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "pwa-node",
+            "type": "node",
             "request": "launch",
             "name": "Launch Bookings",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/app.js",
             "args": [
                 "bookings",
                 "2022",
@@ -19,16 +18,25 @@
             ],
             "env": {
                 "SQUARE_ACCESS_TOKEN": "***REMOVED***"
-            }
+            },
+            "program": "${workspaceFolder}/src/zen.ts",
+            "outFiles": [
+                "${workspaceFolder}/dist/**/*.js"
+            ],
+            "preLaunchTask": "tsc: build - tsconfig.json"
         },
         {
-            "type": "pwa-node",
+            "type": "node",
             "request": "launch",
             "name": "Launch Customer",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/app.js",
+            "program": "${workspaceFolder}/src/zen.ts",
+            "outFiles": [
+                "${workspaceFolder}/dist/**/*.js"
+            ],
+            "preLaunchTask": "tsc: build - tsconfig.json",
             "args": [
                 "customer",
                 "***REMOVED***",
@@ -38,13 +46,17 @@
             }
         },
         {
-            "type": "pwa-node",
+            "type": "node",
             "request": "launch",
             "name": "Launch NT",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/app.js",
+            "program": "${workspaceFolder}/src/zen.ts",
+            "outFiles": [
+                "${workspaceFolder}/dist/**/*.js"
+            ],
+            "preLaunchTask": "tsc: build - tsconfig.json",
             "args": [
                 "nt",
             ],
@@ -53,13 +65,17 @@
             }
         },
         {
-            "type": "pwa-node",
+            "type": "node",
             "request": "launch",
             "name": "Launch Staff",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/app.js",
+            "program": "${workspaceFolder}/src/zen.ts",
+            "outFiles": [
+                "${workspaceFolder}/dist/**/*.js"
+            ],
+            "preLaunchTask": "tsc: build - tsconfig.json",
             "args": [
                 "staff",
                 "Chris",
