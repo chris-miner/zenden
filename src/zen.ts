@@ -20,11 +20,14 @@ const client = new Client({
 })
 
 const program = new Command()
-program.version('0.0.1')
+program.version('0.0.2').description("CLI utility for maninuplating Square Data.")
 
 program
     .command('bookings <year> <month>')
-    .description('list bookings for the given month')
+    .option('--email', "Display bookings for a given customer's email.")
+    .option('--year <year>')
+    .option('--month <month>')
+    .description('List bookings')
     .action(listBookings)
 
 
@@ -56,6 +59,11 @@ program
                 console.log(JSON.stringify(teamMembers))
             })
     })
+
+program
+    .command('nt')
+    .description('retrieve nail trim customers')
+    .action(listNailTrim)
 
 program.parse(process.argv);
 
