@@ -16,14 +16,12 @@
                 "2022",
                 "aug"
             ],
-            "env": {
-                "SQUARE_ACCESS_TOKEN": "***REMOVED***"
-            },
             "program": "${workspaceFolder}/src/zen.ts",
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
             ],
-            "preLaunchTask": "tsc: build - tsconfig.json"
+            "preLaunchTask": "tsc: build - tsconfig.json",
+            "envFile": "${workspaceFolder}/.env",
         },
         {
             "type": "node",
@@ -40,7 +38,7 @@
             "args": [
                 "customer",
                 "***REMOVED***",
-            ],
+            ]
         },
         {
             "type": "node",
