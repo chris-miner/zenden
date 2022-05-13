@@ -24,9 +24,6 @@ program.version('0.0.2').description("CLI utility for maninuplating Square Data.
 
 program
     .command('bookings <year> <month>')
-    .option('--email', "Display bookings for a given customer's email.")
-    .option('--year <year>')
-    .option('--month <month>')
     .description('List bookings')
     .action(listBookings)
 
@@ -37,13 +34,9 @@ program
     .action(listLocations)
 
 program
-    .command('customer <customer_id>')
-    .description('retrieve the customer for the given id')
-    .action((customerId: string) => {
-        retrieveCustomer(customerId).then((customer) => {
-            console.log(customer)
-        })
-    })
+    .command('customer <email>')
+    .description('retrieve the customer for the given email')
+    .action(searchCustomer())
 
 program
     .command('nt')
@@ -60,12 +53,27 @@ program
             })
     })
 
-program
-    .command('nt')
-    .description('retrieve nail trim customers')
-    .action(listNailTrim)
-
 program.parse(process.argv);
+
+function searchCustomer(): (...args: any[]) => void | Promise<void> {
+    return async (email: string) => {
+        try {
+            const response = await client.customersApi.searchCustomers({
+                query: {
+                    filter: {
+                        emailAddress: {
+                            exact: email // 'jshoops25@icloud.com'
+                        }
+                    }
+                }
+            });
+
+            console.log(response.result);
+        } catch (error) {
+            console.log(error);
+        }
+    };
+}
 
 async function listNailTrim() {
     var cursor: string | undefined = ""
@@ -116,7 +124,7 @@ async function listBookings(year: number, month: string) {
                     && (booking.status === "ACCEPTED" || booking.status === "PENDING")) {
                     try {
                         const customer = await retrieveCustomer(booking.customerId)
-                        const staff = await retrieveStaff(booking.appointmentSegments[0].teamMemberId)
+                        const staff = await retrieveTeamMember(booking.appointmentSegments[0].teamMemberId)
 
                         if (customer != null && staff != null && booking.startAt != null) {
                             const startAt = new Date(booking.startAt)
@@ -163,7 +171,7 @@ async function listTeamMembers(firstName: string, lastName: string): Promise<Tea
     }
 }
 
-async function retrieveStaff(id: string): Promise<TeamMember | undefined> {
+async function retrieveTeamMember(id: string): Promise<TeamMember | undefined> {
     try {
         const { result } = await client.teamApi.retrieveTeamMember(id);
         return result.teamMember
