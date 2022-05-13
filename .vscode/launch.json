@@ -41,9 +41,6 @@
                 "customer",
                 "***REMOVED***",
             ],
-            "env": {
-                "SQUARE_ACCESS_TOKEN": "***REMOVED***"
-            }
         },
         {
             "type": "node",
@@ -60,9 +57,6 @@
             "args": [
                 "nt",
             ],
-            "env": {
-                "SQUARE_ACCESS_TOKEN": "***REMOVED***"
-            }
         },
         {
             "type": "node",
@@ -81,9 +75,6 @@
                 "Chris",
                 "Miner"
             ],
-            "env": {
-                "SQUARE_ACCESS_TOKEN": "***REMOVED***"
-            }
         }
     ]
 }
