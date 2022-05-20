@@ -5,9 +5,9 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch Bookings",
             "type": "node",
             "request": "launch",
-            "name": "Launch Bookings",
             "skipFiles": [
                 "<node_internals>/**"
             ],
@@ -16,19 +16,17 @@
                 "2022",
                 "aug"
             ],
-            "env": {
-                "SQUARE_ACCESS_TOKEN": "***REMOVED***"
-            },
             "program": "${workspaceFolder}/src/zen.ts",
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
             ],
-            "preLaunchTask": "tsc: build - tsconfig.json"
+            "preLaunchTask": "tsc: build - tsconfig.json",
+            "envFile": "${workspaceFolder}/.env",
         },
         {
+            "name": "Launch Customer",
             "type": "node",
             "request": "launch",
-            "name": "Launch Customer",
             "skipFiles": [
                 "<node_internals>/**"
             ],
@@ -39,24 +37,11 @@
             "preLaunchTask": "tsc: build - tsconfig.json",
             "args": [
                 "customer",
-                "***REMOVED***",
+                "-d",
+                "email@gmail.com"
             ],
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch NT",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "program": "${workspaceFolder}/src/zen.ts",
-            "outFiles": [
-                "${workspaceFolder}/dist/**/*.js"
-            ],
-            "preLaunchTask": "tsc: build - tsconfig.json",
-            "args": [
-                "nt",
-            ],
+            // "envFile": "${workspaceFolder}/.env",
+            // "outputCapture": "std"
         },
         {
             "type": "node",

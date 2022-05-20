@@ -1,5 +1,6 @@
-import { ApiError, Client, Customer, Environment, ListBookingsResponse, ListCustomersResponse, ListLocationsResponse, Location, RetrieveCustomerResponse, TeamMember } from 'square';
+import { ApiError, BookingsApi, Client, Customer, Environment, ListBookingsResponse, ListCustomersResponse, ListLocationsResponse, Location, RetrieveCustomerResponse, SearchCustomersResponse, TeamMember } from 'square';
 import { Command } from 'commander';
+import 'dotenv/config'
 
 const client = new Client({
     // retryConfig: customRetryConfiguration,
@@ -14,38 +15,24 @@ const client = new Client({
             httpMethodsToRetry: ['GET', 'PUT'],
         }
     },
-    timeout: 3000,
-    environment: Environment.Production,
+    timeout: 6000,
+    environment: process.env.SQUARE_ENVIRONMENT as Environment,
     accessToken: process.env.SQUARE_ACCESS_TOKEN,
 })
 
 const program = new Command()
-program.version('0.0.1')
+program.version('0.0.2').description("CLI utility for maninuplating Square Data.")
 
 program
     .command('bookings <year> <month>')
-    .description('list bookings for the given month')
-    .action(listBookings)
+    .description('List bookings')
+    .action((year: number, month: string) => listBookings(year, month))
 
 
 program
     .command('locations')
     .description('list locations for business')
     .action(listLocations)
-
-program
-    .command('customer <customer_id>')
-    .description('retrieve the customer for the given id')
-    .action((customerId: string) => {
-        retrieveCustomer(customerId).then((customer) => {
-            console.log(customer)
-        })
-    })
-
-program
-    .command('nt')
-    .description('retrieve nail trim customers')
-    .action(listNailTrim)
 
 program
     .command('staff <firstName> <lastName>')
@@ -57,36 +44,106 @@ program
             })
     })
 
+program
+    .command('customer')
+    .argument('<email>')
+    .option('-d, --debug', 'Print debug messages')
+    .description('retrieve the customer for the given email')
+    .action((email: string, options: any, command: any) => { searchCustomer(email, options, command) })
+
 program.parse(process.argv);
 
-async function listNailTrim() {
-    var cursor: string | undefined = ""
-    var customers: any[] = []
-    while (cursor != null) {
-        try {
-            let { result }: { result: ListCustomersResponse } = await client.customersApi.listCustomers(cursor, 100, 'CREATED_AT', 'ASC');
-            cursor = result.cursor
+async function searchCustomer(email: string, options: any, command: any): Promise<void> {
+    if (options.debug)
+        console.log(`Searching for customer with email ${email}`)
 
-            if (result?.customers != null) {
-                for (const customer of result.customers) {
-                    const orders = retrieveOrders(customer.id as string)
-                    console.log(`"${orders.length}", "${customer.givenName} ${customer.familyName}", "${customer.emailAddress}", "${customer.phoneNumber}"`)
+    const body = {
+        query: {
+            filter: {
+                emailAddress: {
+                    exact: email
                 }
-            }
-
-        } catch (error) {
-            if (error instanceof ApiError) {
-                console.log(`API Error: ${error}`)
-            } else {
-                console.log(`Unexpected Error: ${error}`)
             }
         }
     }
 
-}
-// FIXME: implement this to retrieve orders for a customer
-function retrieveOrders(id: string) {
-    return []
+    client.customersApi.searchCustomers(body)
+        .then((response) => response.result)
+        .then((result: SearchCustomersResponse) => {
+            if (result.errors || result.customers == null) {
+                if (options.debug)
+                    console.log(`No customer found for email ${email}`)
+                return;
+            }
+            return result.customers;
+        })
+        .then((customers) => {
+            if (customers == null || customers.length === 0) {
+                if (options.debug)
+                    console.log(`No customer found for email ${email}`)
+                return;
+            }
+
+            if (customers.length > 1) {
+                console.log(`Found more than one customer with email ${email}`)
+            }
+
+            return customers[0];
+        })
+        .then((customer) => {
+            if (customer == null)
+                return;
+
+            console.log(`Found customer ${customer.givenName} ${customer.familyName} with email ${customer.emailAddress}`)
+            return customer;
+        })
+        .then((customer) => {
+            if (customer == null)
+                return;
+
+            const now = new Date();
+            const startAt = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            client.bookingsApi.listBookings(10000, undefined, undefined, undefined, startAt.toISOString())
+                .then((response) => response.result)
+                .then((result: ListBookingsResponse) => {
+                    if (result.errors && result.errors.length > 0) {
+                        console.log(result.errors)
+                        return;
+                    }
+                    return result.bookings
+                })
+                .then((bookings) => {
+                    if (bookings == null || bookings.length === 0)
+                        return;
+
+                    return bookings.filter(booking => booking.customerId === customer.id)
+                })
+                .then((bookings) => {
+                    if (bookings == null || bookings.length === 0) {
+                        console.log(`No bookings found for customer ${customer.givenName} ${customer.familyName}`)
+                        return;
+                    }
+
+                    console.log(`Bookings found for customer ${customer.givenName} ${customer.familyName}`)
+                    bookings.map(booking => {
+                        if (booking != null && booking.startAt != null) {
+                            const startAt = new Date(booking.startAt)
+                            console.log(`Booking on ${startAt.toLocaleString()} with status ${booking.status}`)
+                        } else {
+                            console.log(`Booking has no start date`)
+                        }
+                    })
+                    bookings
+                        .filter(booking => (booking.status === 'ACCEPTED' || booking.status === 'PENDING'))
+                        .map(booking => {
+                            const startAt = new Date(booking.startAt as string)
+                            const red = '\x1b[31m'
+                            const reset = '\x1b[0m'
+                            console.log(`${red}Need to cancel booking on ${startAt.toLocaleString()} for ${customer.givenName} ${customer.familyName}${reset}`)
+                        })
+                }).catch(error => console.error(error))
+        })
+        .catch(error => console.error(error))
 }
 
 async function listBookings(year: number, month: string) {
@@ -98,7 +155,7 @@ async function listBookings(year: number, month: string) {
     while (cursor != null) {
         try {
             const { result }: { result: ListBookingsResponse }
-                = await client.bookingsApi.listBookings(100, cursor, "", "6JP61784A3D6V", startTime.toISOString(), endTime.toISOString());
+                = await client.bookingsApi.listBookings(10000, cursor, undefined, undefined, startTime.toISOString(), endTime.toISOString());
             if (result.bookings == null) break;
             cursor = result.cursor
 
@@ -108,14 +165,14 @@ async function listBookings(year: number, month: string) {
                     && (booking.status === "ACCEPTED" || booking.status === "PENDING")) {
                     try {
                         const customer = await retrieveCustomer(booking.customerId)
-                        const staff = await retrieveStaff(booking.appointmentSegments[0].teamMemberId)
+                        const staff = await retrieveTeamMember(booking.appointmentSegments[0].teamMemberId)
 
                         if (customer != null && staff != null && booking.startAt != null) {
                             const startAt = new Date(booking.startAt)
                             console.log(`"${startAt.toLocaleString()}", "${staff.givenName}", "${booking.status}", "${customer.givenName} ${customer.familyName}", "${customer.emailAddress}", "${customer.phoneNumber}"`)
                         }
                         else {
-                            console.error(`No customer found for booking ${booking.id} with customerId ${booking.customerId}`)
+                            console.error(`No customer found for booking ${booking.id} with customerId ${booking.customerId} `)
                         }
                     }
                     catch (error) {
@@ -125,9 +182,9 @@ async function listBookings(year: number, month: string) {
             }
         } catch (error) {
             if (error instanceof ApiError) {
-                console.error(`API Error: ${error}`)
+                error.errors?.map(e => console.error(e))
             } else {
-                console.error(`Unexpected Error: ${error}`)
+                console.error(`Unexpected Error: ${error} `)
             }
             // exit loop on error
             break;
@@ -148,14 +205,14 @@ async function listTeamMembers(firstName: string, lastName: string): Promise<Tea
 
     } catch (error) {
         if (error instanceof ApiError) {
-            console.error(`API Error: ${error}`)
+            console.error(`API Error: ${error} `)
         } else {
-            console.error(`Unexpected Error: ${error}`)
+            console.error(`Unexpected Error: ${error} `)
         }
     }
 }
 
-async function retrieveStaff(id: string): Promise<TeamMember | undefined> {
+async function retrieveTeamMember(id: string): Promise<TeamMember | undefined> {
     try {
         const { result } = await client.teamApi.retrieveTeamMember(id);
         return result.teamMember
@@ -163,7 +220,7 @@ async function retrieveStaff(id: string): Promise<TeamMember | undefined> {
         if (error instanceof ApiError) {
             console.error(`API Error: ${error} for staff ${id}`)
         } else {
-            console.error(`Unexpected Error: ${error}`)
+            console.error(`Unexpected Error: ${error} `)
         }
     }
 }
