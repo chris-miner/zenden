@@ -40,8 +40,8 @@
                 "-d",
                 "email@gmail.com"
             ],
-            // "envFile": "${workspaceFolder}/.env",
-            // "outputCapture": "std"
+            "envFile": "${workspaceFolder}/.env",
+            "outputCapture": "std"
         },
         {
             "type": "node",
