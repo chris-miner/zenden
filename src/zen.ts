@@ -1,5 +1,5 @@
 import { ApiError, BookingsApi, Client, Customer, Environment, ListBookingsResponse, ListCustomersResponse, ListLocationsResponse, Location, RetrieveCustomerResponse, SearchCustomersResponse, TeamMember } from 'square';
-import { Command } from 'commander';
+import { program } from 'commander';
 import 'dotenv/config'
 
 const client = new Client({
@@ -20,7 +20,6 @@ const client = new Client({
     accessToken: process.env.SQUARE_ACCESS_TOKEN,
 })
 
-const program = new Command()
 program.version('0.0.2').description("CLI utility for maninuplating Square Data.")
 
 program
