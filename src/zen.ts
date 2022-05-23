@@ -46,15 +46,13 @@ program
 program
     .command('customer')
     .argument('<email>')
-    .option('-d, --debug', 'Print debug messages')
     .description('retrieve the customer for the given email')
     .action((email: string, options: any, command: any) => { searchCustomer(email, options, command) })
 
 program.parse(process.argv);
 
 async function searchCustomer(email: string, options: any, command: any): Promise<void> {
-    if (options.debug)
-        console.log(`Searching for customer with email ${email}`)
+    console.log(`Searching for customer with email ${email}`)
 
     const body = {
         query: {
@@ -70,16 +68,14 @@ async function searchCustomer(email: string, options: any, command: any): Promis
         .then((response) => response.result)
         .then((result: SearchCustomersResponse) => {
             if (result.errors || result.customers == null) {
-                if (options.debug)
-                    console.log(`No customer found for email ${email}`)
+                console.log(`No customer found for email ${email}`)
                 return;
             }
             return result.customers;
         })
         .then((customers) => {
             if (customers == null || customers.length === 0) {
-                if (options.debug)
-                    console.log(`No customer found for email ${email}`)
+                console.log(`No customer found for email ${email}`)
                 return;
             }
 
@@ -106,7 +102,7 @@ async function searchCustomer(email: string, options: any, command: any): Promis
                 .then((response) => response.result)
                 .then((result: ListBookingsResponse) => {
                     if (result.errors && result.errors.length > 0) {
-                        console.log(result.errors)
+                        console.error(result.errors)
                         return;
                     }
                     return result.bookings
