@@ -45,7 +45,7 @@ program
 
 program
     .command('customer')
-    .argument('<email>')
+    .argument('<email>', 'Email address of customer')
     .description('retrieve the customer for the given email')
     .action((email: string, options: any, command: any) => { searchCustomer(email, options, command) })
 

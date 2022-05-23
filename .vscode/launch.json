@@ -37,6 +37,7 @@
             "preLaunchTask": "tsc: watch - tsconfig.json",
             "args": [
                 "customer",
+                "customer@gmail.com"
             ],
             "envFile": "${workspaceFolder}/.env",
             "outputCapture": "std"
