@@ -20,7 +20,7 @@
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
             ],
-            "preLaunchTask": "tsc: build - tsconfig.json",
+            "preLaunchTask": "tsc: watch - tsconfig.json",
             "envFile": "${workspaceFolder}/.env",
         },
         {
@@ -34,11 +34,10 @@
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
             ],
-            "preLaunchTask": "tsc: build - tsconfig.json",
+            "preLaunchTask": "tsc: watch - tsconfig.json",
             "args": [
                 "customer",
-                "-d",
-                "email@gmail.com"
+                "-d"
             ],
             "envFile": "${workspaceFolder}/.env",
             "outputCapture": "std"
@@ -54,7 +53,7 @@
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
             ],
-            "preLaunchTask": "tsc: build - tsconfig.json",
+            "preLaunchTask": "tsc: watch - tsconfig.json",
             "args": [
                 "staff",
                 "Chris",
